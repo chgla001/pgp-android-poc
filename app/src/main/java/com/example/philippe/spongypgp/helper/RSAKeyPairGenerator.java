@@ -1,4 +1,4 @@
-package com.example.philippe.spongypgp.jdamico;
+package com.example.philippe.spongypgp.helper;
 
 import org.spongycastle.bcpg.ArmoredOutputStream;
 import org.spongycastle.bcpg.HashAlgorithmTags;
@@ -19,11 +19,8 @@ import org.spongycastle.openpgp.operator.jcajce.JcePBESecretKeyEncryptorBuilder;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.security.InvalidKeyException;
-import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.security.SignatureException;
 import java.security.interfaces.RSAPrivateCrtKey;
 import java.util.Date;
 

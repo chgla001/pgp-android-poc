@@ -5,8 +5,8 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 
-import com.example.philippe.spongypgp.jdamico.PgpHelper;
-import com.example.philippe.spongypgp.jdamico.RSAKeyPairGenerator;
+import com.example.philippe.spongypgp.helper.PgpHelper;
+import com.example.philippe.spongypgp.helper.RSAKeyPairGenerator;
 
 import org.spongycastle.jce.provider.BouncyCastleProvider;
 import org.spongycastle.openpgp.PGPException;
@@ -22,15 +22,10 @@ import java.security.Security;
 public class MainActivity extends AppCompatActivity {
 
     private boolean isArmored = true;
-    private String id = "bob";
-    private String passwd = "bob";
     private boolean integrityCheck = true;
 
-    private String pubKeyFile = "pub.dat";
-    private String privKeyFile = "secret.dat";
-
     private String plainTextFile = "plain-text.txt";
-    private String cipherTextFile = "cypher-text.dat";
+    private String cipherTextFile = "cypher-text.txt";
     private String decPlainTextFile = "dec-plain-text.txt";
     private String signatureFile = "signature.txt";
 
@@ -38,8 +33,20 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+    }
 
-        createStaticFiles();
+    public void proofOfConcept(View view){
+        try{
+            genKeyPair("alice", "alice");
+            genKeyPair("bob","bob");
+            encrypt("bob","Dies ist eine Nachricht von Alice an Bob");
+            decrypt("bob","bob");
+            encrypt("alice","Dies ist eine Nachricht von Bob an Alice. Bob mag Alice.");
+            decrypt("alice","alice");
+            //signAndVerify("alice", "alice");
+        }catch (Exception e){
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -203,39 +210,51 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public void genKeyPairClick(View view) {
-        try {
-            genKeyPair();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (PGPException e) {
-            e.printStackTrace();
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        }
-    }
+//    public void genKeyPairClick(View view) {
+//        try {
+//            genKeyPair();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        } catch (PGPException e) {
+//            e.printStackTrace();
+//        } catch (NoSuchAlgorithmException e) {
+//            e.printStackTrace();
+//        }
+//    }
+//
+//    public void encryptClick(View view) {
+//        try {
+//            encrypt();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        } catch (PGPException e) {
+//            e.printStackTrace();
+//        }
+//    }
+//
+//    public void decryptClick(View view) {
+//        try {
+//            decrypt();
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//    }
+//
+//    public void signAndVerifyClick(View view) {
+//        try {
+//            signAndVerify();
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//    }
 
-    public void encryptClick(View view) {
-        try {
-            encrypt();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (PGPException e) {
-            e.printStackTrace();
-        }
-    }
+    private void createMessageFile(String nachricht){
+        FileOutputStream outputStream;
 
-    public void decryptClick(View view) {
         try {
-            decrypt();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void signAndVerifyClick(View view) {
-        try {
-            signAndVerify();
+            outputStream = openFileOutput(plainTextFile, Context.MODE_PRIVATE);
+            outputStream.write(nachricht.getBytes());
+            outputStream.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -244,7 +263,7 @@ public class MainActivity extends AppCompatActivity {
     /**
      * @see "https://github.com/damico/OpenPgp-BounceCastle-Example/blob/master/src/org/jdamico/bc/openpgp/tests/TestBCOpenPGP.java"
      */
-    private void genKeyPair() throws IOException, PGPException, NoSuchAlgorithmException {
+    private void genKeyPair(String name, String passwd) throws IOException, PGPException, NoSuchAlgorithmException {
 
         RSAKeyPairGenerator rkpg = new RSAKeyPairGenerator();
 
@@ -256,10 +275,10 @@ public class MainActivity extends AppCompatActivity {
 
         KeyPair kp = kpg.generateKeyPair();
 
-        FileOutputStream out1 = openFileOutput(privKeyFile, Context.MODE_PRIVATE);
-        FileOutputStream out2 = openFileOutput(pubKeyFile, Context.MODE_PRIVATE);
+        FileOutputStream out1 = openFileOutput("privKey" + name + ".txt", Context.MODE_PRIVATE);
+        FileOutputStream out2 = openFileOutput("pubKey" + name + ".txt", Context.MODE_PRIVATE);
 
-        rkpg.exportKeyPair(out1, out2, kp.getPublic(), kp.getPrivate(), id, passwd.toCharArray(), isArmored);
+        rkpg.exportKeyPair(out1, out2, kp.getPublic(), kp.getPrivate(), name, passwd.toCharArray(), isArmored);
 
 
     }
@@ -267,9 +286,10 @@ public class MainActivity extends AppCompatActivity {
     /**
      * @see "https://github.com/damico/OpenPgp-BounceCastle-Example/blob/master/src/org/jdamico/bc/openpgp/tests/TestBCOpenPGP.java"
      */
-    private void encrypt() throws IOException, PGPException{
-//        FileInputStream pubKeyIs = openFileInput("pub_alice.dat");
-        FileInputStream pubKeyIs = openFileInput(pubKeyFile);
+    private void encrypt(String receiver, String nachricht) throws IOException, PGPException{
+        createMessageFile(nachricht);
+//        FileInputStream pubKeyIs = openFileInput("pub_alice.txt");
+        FileInputStream pubKeyIs = openFileInput("pubKey" + receiver + ".txt");
         FileOutputStream cipheredFileIs = openFileOutput(cipherTextFile, Context.MODE_PRIVATE);
         PgpHelper.getInstance().encryptFile(cipheredFileIs, getFilesDir().getAbsolutePath() + "/" + plainTextFile, PgpHelper.getInstance().readPublicKey(pubKeyIs), isArmored, integrityCheck);
         cipheredFileIs.close();
@@ -279,9 +299,9 @@ public class MainActivity extends AppCompatActivity {
     /**
      * @see "https://github.com/damico/OpenPgp-BounceCastle-Example/blob/master/src/org/jdamico/bc/openpgp/tests/TestBCOpenPGP.java"
      */
-    private void decrypt() throws Exception{
+    private void decrypt(String receiver, String passwd) throws Exception{
         FileInputStream cipheredFileIs = openFileInput(cipherTextFile);
-        FileInputStream privKeyIn = openFileInput(privKeyFile);
+        FileInputStream privKeyIn = openFileInput("privKey" + receiver + ".txt");
         FileOutputStream plainTextFileIs = openFileOutput(decPlainTextFile, Context.MODE_PRIVATE);
         PgpHelper.getInstance().decryptFile(cipheredFileIs, plainTextFileIs, privKeyIn, passwd.toCharArray());
         cipheredFileIs.close();
@@ -292,9 +312,9 @@ public class MainActivity extends AppCompatActivity {
     /**
      * @see "https://github.com/damico/OpenPgp-BounceCastle-Example/blob/master/src/org/jdamico/bc/openpgp/tests/TestBCOpenPGP.java"
      */
-    private void signAndVerify() throws Exception{
-        FileInputStream privKeyIn = openFileInput(privKeyFile);
-        FileInputStream pubKeyIs = openFileInput(pubKeyFile);
+    private void signAndVerify(String sender, String passwd) throws Exception{
+        FileInputStream privKeyIn = openFileInput("privKey" + sender + ".txt");
+        FileInputStream pubKeyIs = openFileInput("pubKey" + sender + ".txt");
         FileInputStream plainTextInput = openFileInput(plainTextFile);
         FileOutputStream signatureOut = openFileOutput(signatureFile, Context.MODE_PRIVATE);
 
